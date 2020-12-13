@@ -8,6 +8,7 @@ namespace DatabaseSide {
 		size_t id;
 
 	public:
+		Base() : id(0) {}
 		Base(const size_t& id)
 		{
 			setID(id);
@@ -17,8 +18,6 @@ namespace DatabaseSide {
 			this->id = id;
 		}
 		size_t getID() const { return this->id; }
-
-		virtual void show() = 0;
 		virtual ~Base() = 0 {}
 	};
 
@@ -48,7 +47,7 @@ namespace DatabaseSide {
 
 		std::string getPassword() const { return this->password; }
 
-		void show() override
+		void show() const
 		{
 			std::cout << "ID: " << getID() << std::endl;
 			std::cout << "Username: " << getUsername() << std::endl;
@@ -81,7 +80,7 @@ namespace DatabaseSide {
 		
 		std::string getConnectedDate() const { return this->connected_date; }
 
-		void show() override
+		void show()
 		{
 			std::cout << "ID: " << getID() << std::endl;
 			std::cout << "Fullname: " << getFullName() << std::endl;
@@ -99,6 +98,11 @@ namespace DatabaseSide {
 		double tax;
 
 	public:
+		Product() : name(""), description(""), price(0.0), discount(0.0), tax(0.0)
+		{
+			setAddedDate();
+		}
+
 		Product(const size_t& id, const std::string& name, const std::string& description,
 			const double& price, const double& discount, const double& tax) : Base(id)
 		{
@@ -157,15 +161,88 @@ namespace DatabaseSide {
 		{
 			return this->price - ((this->price * this->discount) / 100.0);
 		}
-	};
 
+		friend std::ostream& operator << (std::ostream& out, const Product& product);
+		friend std::istream& operator >> (std::istream& in, const Product& product);
+		void shortInfo() const
+		{
+			std::cout << "########################################" << std::endl;
+			std::cout << "ID: " << getID() << std::endl;
+			std::cout << "Name: " << getName() << std::endl;
+			std::cout << "Added date: " << getAddeDate() << std::endl;
+			std::cout << "Price: " << getPrice() << std::endl;
+		}
+
+		void detail() const
+		{
+			std::cout << "########################################" << std::endl;
+			std::cout << "ID: " << getID() << std::endl;
+			std::cout << "Name: " << getName() << std::endl;
+			std::cout << "Added date: " << getAddeDate() << std::endl;
+			std::cout << "Description: " << getDescription() << std::endl;
+			std::cout << "Price: " << getPrice() << std::endl;
+			std::cout << "Tax: " << getTax() << std::endl;
+			std::cout << "Discount: " << getDiscount() << std::endl;
+
+			if (getDiscount())
+			{
+				std::cout << "Discounted price: " << getDiscountedPrice() << std::endl;
+			}
+		}
+
+		void input()
+		{
+			std::string name, description;
+			double price, discount, tax;
+			std::cout << "Name: ";
+
+			std::cin.ignore();
+			std::getline(std::cin, name);
+
+			setName(name);
+
+			std::cout << "Description: ";
+
+			std::getline(std::cin, description);
+
+			setDescription(description);
+
+			std::cout << "Price: ";
+
+			std::cin >> price;
+
+			setPrice(price);
+
+			std::cout << "Tax: ";
+
+			std::cin >> tax;
+
+			setTax(tax);
+
+			std::cout << "Discount: ";
+
+			std::cin >> discount;
+
+			setDiscount(discount);
+		}
+	};
+	std::ostream& operator << (std::ostream& out, const Product& product)
+	{
+		product.detail();
+		return out;
+	}
+	std::istream& operator >> (std::istream& in, Product& product)
+	{
+		product.input();
+		return in;
+	}
 	class ProductItem
 	{
 		Product* product;
 		size_t quantity;
 
 	public:
-		ProductItem(Product*& product, const size_t& quantity)
+		ProductItem(const Product & product, const size_t& quantity)
 		{
 			setProduct(product);
 			setQuantity(quantity);
@@ -178,12 +255,20 @@ namespace DatabaseSide {
 
 		size_t getQuantity()const { return this->quantity; }
 
-		void setProduct(Product*& product)
+		void setProduct(const Product& product)
 		{
-			this->product = product;
+			this->product = new Product(product);
 		}
 
 		Product* getProduct() const { return this->product; }
+
+		size_t getID() const { return this->product->getID(); }
+
+		~ProductItem()
+		{
+			delete this->product;
+			this->product = NULL;
+		}
 	};
 
 	template <typename T>
@@ -191,19 +276,223 @@ namespace DatabaseSide {
 	{
 		T** items;
 		size_t count;
+	private:
+		int getItemIndexById(const size_t& id) const
+		{
+			for (size_t i = 0; i < this->count; i++)
+			{
+				if (id == this->items[i]->getID())
+					return i;
+			}
+			return -1;
+		}
 	public:
-		void add(const T* item);
-		void deleteById(const size_t& id);
-		T* getItem(const size_t& id);
-		void updateById(const size_t& id);
+		DataSet() :items(NULL), count(0.0) {}
+		void add(const T* item)
+		{
+			size_t new_size = this->count + 1;
+			auto new_items = new T * [new_size];
+
+			if (new_items != NULL)
+			{
+				if (new_size - 1)
+				{
+					for (size_t i = 0; i < this->count; i++)
+					{
+						new_items[i] = this->items[i];
+					}
+
+					delete[] this->items;
+				}
+
+				new_items[new_size - 1] = new T(*item);
+				this->count = new_size;
+				this->items = new_items;
+			}
+		}
+		void deleteById(const size_t& id)
+		{
+			int item_index = getItemIndexById(id);
+
+			if (item_index != -1)
+			{
+				auto new_items = new T * [this->count - 1];
+				
+				if (new_items != NULL)
+				{
+					for (size_t i = 0; i < item_index; i++)
+					{
+						new_items[i] = this->items[i];
+					}
+
+					for (size_t i = item_index, j = i + 1; i < this->count - 1; i++)
+					{
+						new_items[i] = this->items[j];
+					}
+
+					delete this->items[item_index];
+					delete[] this->items;
+
+					this->items = new_items;
+					this->count--;
+				}
+			}
+		}
+		T* getItem(const size_t& id) const
+		{
+			int item_index = getItemIndexById(id);
+
+			if (item_index != -1)
+				return this->items[item_index];
+			return NULL;
+		}
+		void updateById(const size_t& id, const T* item)
+		{
+			int item_index = getItemIndexById(id);
+
+			if (item_index != -1)
+			{
+				delete this->items[item_index];
+				this->items[item_index] = new T(*item);
+			}
+		}
+
+		size_t getProductCount() const { return this->count; }
+
+		T** getItems() const { return this->items; }
+
+		~DataSet()
+		{
+			for (size_t i = 0; i < this->count; i++)
+			{
+				delete this->items[i];
+			}
+			delete[] this->items;
+		}
 	};
 
 	class Database {
-		DataSet<Product> products;
+		DataSet<ProductItem> products;
 		DataSet<Admin> admins;
 		DataSet<Client> guests;
 
 		std::string name;
-		std::string connected_date;
+		std::string created_date;
+		std::string last_modified_date;
+	
+	private:
+		void setCreatedDate()
+		{
+			this->created_date = Time::getDate();
+		}
+
+	public:
+		Database() :name(""), created_date(""), last_modified_date("") {}
+		Database(const std::string & name) {
+			setName(name);
+			setCreatedDate();
+		}
+
+		void setName(const std::string& name)
+		{
+			this->name = name;
+		}
+
+		std::string getName() const { return this->name; }
+
+		void setLastModifiedDate(const std::string& date)
+		{
+			this->last_modified_date = date;
+		}
+
+		std::string getLastModifiedDate() const { return this->last_modified_date; }
+
+		std::string getCreatedDate() const { return this->created_date; }
+
+		void addProduct(const ProductItem * product)
+		{
+			if (product != NULL)
+				this->products.add(product);
+		}
+
+		void deleteProductByID(const size_t& id)
+		{
+			if (id > 0)
+				this->products.deleteById(id);
+		}
+
+		void updateProductByID(const size_t& id, const ProductItem* item)
+		{
+			if (id > 0 && item != NULL)
+				this->products.updateById(id, item);
+		}
+
+		void showAllProducts(bool fullDetail = false)
+		{
+			ProductItem ** items = this->products.getItems();
+			if (items != NULL)
+			{
+				if (fullDetail)
+				{
+					for (size_t i = 0, length = this->products.getProductCount(); i < length; i++)
+					{
+						std::cout << items[i]->getProduct();
+					}
+					std::cout << "########################################" << std::endl;
+				}
+				else
+				{
+					for (size_t i = 0, length = this->products.getProductCount(); i < length; i++)
+					{
+						items[i]->getProduct()->shortInfo();
+					}
+					std::cout << "########################################" << std::endl;
+				}
+			}
+			else
+				std::cout << "There is no product!" << std::endl;
+		}
+
+		Product* getProduct(const size_t& id) const { return this->products.getItem(id)->getProduct(); }
+
+		void addAdmin(const Admin* admin)
+		{
+			if (admin != NULL)
+				this->admins.add(admin);
+		}
+
+		void deleteAdminByID(const size_t& id)
+		{
+			if (id > 0)
+				this->admins.deleteById(id);
+		}
+
+		void updateAdminByID(const size_t& id, const Admin* admin)
+		{
+			if (id > 0 && admin != NULL)
+				this->admins.updateById(id, admin);
+		}
+
+		Admin* getAdmin(const size_t& id) { return this->admins.getItem(id); }
+
+		void addGuest(const Client* guest)
+		{
+			if (guest != NULL)
+				this->guests.add(guest);
+		}
+
+		void deleteGuestByID(const size_t& id)
+		{
+			if (id > 0)
+				this->guests.deleteById(id);
+		}
+
+		void updateGuestByID(const size_t& id, const Client* guest)
+		{
+			if (id > 0 && guest != NULL)
+				this->guests.updateById(id, guest);
+		}
+
+		Client* getGuest(const size_t& id) { return this->guests.getItem(id); }
 	};
 }

@@ -1,3 +1,11 @@
 ﻿  Source.cpp
 C:\Users\elgun\repos\battleship\ECommerce\ECommerce\Source.cpp(6,1): warning C4326: return type of 'main' should be 'int' instead of 'void'
+C:\Users\elgun\repos\battleship\ECommerce\ECommerce\Database.h(323,2): warning C4018: '<': signed/unsigned mismatch
+C:\Users\elgun\repos\battleship\ECommerce\ECommerce\Database.h(314): message : while compiling class template member function 'void DatabaseSide::DataSet<DatabaseSide::Client>::deleteById(const size_t &)'
+C:\Users\elgun\repos\battleship\ECommerce\ECommerce\Database.h(487): message : see reference to function template instantiation 'void DatabaseSide::DataSet<DatabaseSide::Client>::deleteById(const size_t &)' being compiled
+C:\Users\elgun\repos\battleship\ECommerce\ECommerce\Database.h(377): message : see reference to class template instantiation 'DatabaseSide::DataSet<DatabaseSide::Client>' being compiled
+C:\Users\elgun\repos\battleship\ECommerce\ECommerce\Database.h(290,1): warning C4244: 'initializing': conversion from 'double' to 'size_t', possible loss of data
+C:\Users\elgun\repos\battleship\ECommerce\ECommerce\Database.h(290): message : while compiling class template member function 'DatabaseSide::DataSet<DatabaseSide::Client>::DataSet(void)'
+C:\Users\elgun\repos\battleship\ECommerce\ECommerce\Database.h(390): message : see reference to function template instantiation 'DatabaseSide::DataSet<DatabaseSide::Client>::DataSet(void)' being compiled
+C:\Users\elgun\repos\battleship\ECommerce\ECommerce\Admin.h(46): warning C4172: returning address of local variable or temporary: item
   ECommerce.vcxproj -> C:\Users\elgun\repos\battleship\ECommerce\Debug\ECommerce.exe
