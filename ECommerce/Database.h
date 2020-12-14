@@ -49,12 +49,34 @@ namespace DatabaseSide {
 
 		void show() const
 		{
+			std::cout << "########################################" << std::endl;
 			std::cout << "ID: " << getID() << std::endl;
 			std::cout << "Username: " << getUsername() << std::endl;
 			std::cout << "Password: " << getPassword() << std::endl;
 		}
-	};
 
+		friend std::ostream& operator << (std::ostream& out, const Admin& admin);
+		friend std::istream &operator >> (std::istream& in,  Admin& admin);
+	};
+	std::ostream &operator << (std::ostream& out, const Admin& admin)
+	{
+		admin.show();
+		return out;
+	}
+	std::istream& operator >> (std::istream& in, Admin& admin)
+	{
+		std::string username, password;
+
+		std::cout << "Username: ";
+
+		//std::cin.ignore();
+		std::getline(in, username);
+
+		std::cout << "Password: ";
+
+		std::getline(in, password);
+		return in;
+	}
 	class Client : public Base {
 		std::string fullname;
 		std::string connected_date;
@@ -80,14 +102,31 @@ namespace DatabaseSide {
 		
 		std::string getConnectedDate() const { return this->connected_date; }
 
-		void show()
+		void show() const
 		{
 			std::cout << "ID: " << getID() << std::endl;
 			std::cout << "Fullname: " << getFullName() << std::endl;
 			std::cout << "Last connected date: " << getConnectedDate() << std::endl;
 		}
-	};
 
+		friend std::ostream& operator << (std::ostream& out, const Client& client);
+		friend std::istream& operator >> (std::istream& in, Client& client);
+	};
+	std::ostream& operator << (std::ostream& out, const Client& client)
+	{
+		client.show();
+		return out;
+	}
+	std::istream& operator >> (std::istream& in, Client& client)
+	{
+		std::string fullname;
+
+		std::cout << "Fullname: ";
+
+		//in.ignore();
+		std::getline(in, fullname);
+		return in;
+	}
 	class Product : public Base
 	{
 		std::string name;
@@ -263,6 +302,10 @@ namespace DatabaseSide {
 		Product* getProduct() const { return this->product; }
 
 		size_t getID() const { return this->product->getID(); }
+		void setID(const size_t& id)
+		{
+			this->product->setID(id);
+		}
 
 		~ProductItem()
 		{
@@ -276,19 +319,9 @@ namespace DatabaseSide {
 	{
 		T** items;
 		size_t count;
-	private:
-		int getItemIndexById(const size_t& id) const
-		{
-			for (size_t i = 0; i < this->count; i++)
-			{
-				if (id == this->items[i]->getID())
-					return i;
-			}
-			return -1;
-		}
 	public:
 		DataSet() :items(NULL), count(0.0) {}
-		void add(const T* item)
+		void add(const size_t id, const T* item)
 		{
 			size_t new_size = this->count + 1;
 			auto new_items = new T * [new_size];
@@ -306,36 +339,32 @@ namespace DatabaseSide {
 				}
 
 				new_items[new_size - 1] = new T(*item);
+				new_items[new_size - 1]->setID(id);
 				this->count = new_size;
 				this->items = new_items;
 			}
 		}
-		void deleteById(const size_t& id)
+		void deleteById(const size_t index)
 		{
-			int item_index = getItemIndexById(id);
+			auto new_items = new T * [this->count - 1];
 
-			if (item_index != -1)
+			if (new_items != NULL)
 			{
-				auto new_items = new T * [this->count - 1];
-				
-				if (new_items != NULL)
+				for (size_t i = 0; i < index; i++)
 				{
-					for (size_t i = 0; i < item_index; i++)
-					{
-						new_items[i] = this->items[i];
-					}
-
-					for (size_t i = item_index, j = i + 1; i < this->count - 1; i++)
-					{
-						new_items[i] = this->items[j];
-					}
-
-					delete this->items[item_index];
-					delete[] this->items;
-
-					this->items = new_items;
-					this->count--;
+					new_items[i] = this->items[i];
 				}
+
+				for (size_t i = index, j = i + 1; i < this->count - 1; i++)
+				{
+					new_items[i] = this->items[j];
+				}
+
+				delete this->items[index];
+				delete[] this->items;
+
+				this->items = new_items;
+				this->count--;
 			}
 		}
 		T* getItem(const size_t& id) const
@@ -346,18 +375,24 @@ namespace DatabaseSide {
 				return this->items[item_index];
 			return NULL;
 		}
-		void updateById(const size_t& id, const T* item)
+		int getItemIndexById(const size_t& id) const
 		{
-			int item_index = getItemIndexById(id);
-
-			if (item_index != -1)
+			for (size_t i = 0; i < this->count; i++)
 			{
-				delete this->items[item_index];
-				this->items[item_index] = new T(*item);
+				if (id == this->items[i]->getID())
+					return i;
 			}
+			return -1;
+		}
+		void updateById(const size_t index, const T* item)
+		{
+			size_t id = this->items[index]->getID();
+			delete this->items[index];
+			this->items[index] = new T(*item);
+			this->items[index]->setID(id);
 		}
 
-		size_t getProductCount() const { return this->count; }
+		size_t getItemCount() const { return this->count; }
 
 		T** getItems() const { return this->items; }
 
@@ -387,6 +422,11 @@ namespace DatabaseSide {
 		}
 
 	public:
+		static size_t admins_id;
+		static size_t guests_id;
+		static size_t products_id;
+
+
 		Database() :name(""), created_date(""), last_modified_date("") {}
 		Database(const std::string & name) {
 			setName(name);
@@ -412,7 +452,7 @@ namespace DatabaseSide {
 		void addProduct(const ProductItem * product)
 		{
 			if (product != NULL)
-				this->products.add(product);
+				this->products.add(++products_id, product);
 		}
 
 		void deleteProductByID(const size_t& id)
@@ -421,12 +461,13 @@ namespace DatabaseSide {
 				this->products.deleteById(id);
 		}
 
-		void updateProductByID(const size_t& id, const ProductItem* item)
+		void updateProductByID(const size_t& index, const ProductItem* item)
 		{
-			if (id > 0 && item != NULL)
-				this->products.updateById(id, item);
+			if (item != NULL)
+				this->products.updateById(index, item);
 		}
 
+		int getProductIndexById(const size_t &id) const { return this->products.getItemIndexById(id); }
 		void showAllProducts(bool fullDetail = false)
 		{
 			ProductItem ** items = this->products.getItems();
@@ -434,15 +475,15 @@ namespace DatabaseSide {
 			{
 				if (fullDetail)
 				{
-					for (size_t i = 0, length = this->products.getProductCount(); i < length; i++)
+					for (size_t i = 0, length = this->products.getItemCount(); i < length; i++)
 					{
-						std::cout << items[i]->getProduct();
+						std::cout << *items[i]->getProduct();
 					}
 					std::cout << "########################################" << std::endl;
 				}
 				else
 				{
-					for (size_t i = 0, length = this->products.getProductCount(); i < length; i++)
+					for (size_t i = 0, length = this->products.getItemCount(); i < length; i++)
 					{
 						items[i]->getProduct()->shortInfo();
 					}
@@ -458,7 +499,7 @@ namespace DatabaseSide {
 		void addAdmin(const Admin* admin)
 		{
 			if (admin != NULL)
-				this->admins.add(admin);
+				this->admins.add(++admins_id, admin);
 		}
 
 		void deleteAdminByID(const size_t& id)
@@ -472,13 +513,25 @@ namespace DatabaseSide {
 			if (id > 0 && admin != NULL)
 				this->admins.updateById(id, admin);
 		}
-
+		int getAdminIndexById(const size_t& id) const{ return this->admins.getItemIndexById(id); }
 		Admin* getAdmin(const size_t& id) { return this->admins.getItem(id); }
 
+		void showAllAdmins() const
+		{
+			Admin** admins = this->admins.getItems();
+
+			if (admins != NULL)
+			{
+				for (size_t i = 0; i < this->admins.getItemCount(); i++)
+				{
+					std::cout << admins[i];
+				}
+			}
+		}
 		void addGuest(const Client* guest)
 		{
 			if (guest != NULL)
-				this->guests.add(guest);
+				this->guests.add(++guests_id, guest);
 		}
 
 		void deleteGuestByID(const size_t& id)
@@ -492,7 +545,24 @@ namespace DatabaseSide {
 			if (id > 0 && guest != NULL)
 				this->guests.updateById(id, guest);
 		}
+		void showAllGuests() const
+		{
+			Client** guests = this->guests.getItems();
 
+			if (guests != NULL)
+			{
+				for (size_t i = 0; i < this->admins.getItemCount(); i++)
+				{
+					std::cout << guests[i];
+				}
+			}
+		}
 		Client* getGuest(const size_t& id) { return this->guests.getItem(id); }
+
+		int getGuestIndexById(const size_t& id) const { return this->guests.getItemIndexById(id); }
 	};
+
+	size_t Database::products_id = NULL;
+	size_t Database::admins_id = NULL;
+	size_t Database::guests_id = NULL;
 }
