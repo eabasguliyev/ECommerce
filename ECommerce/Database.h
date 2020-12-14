@@ -3,6 +3,12 @@
 #include "Time.h"
 
 namespace DatabaseSide {
+	size_t generateHash(const std::string& data)
+	{
+		std::hash<std::string > hash;
+		return hash(data);
+	}
+
 	class Base
 	{
 		size_t id;
@@ -24,10 +30,10 @@ namespace DatabaseSide {
 	class Admin : public Base {
 		std::string username;
 		std::string password;
-
+		bool master;
 	public:
-
-		Admin(const size_t& id, const std::string& username, const std::string& password): Base(id)
+		Admin() :username(""), password("") {}
+		Admin(const size_t& id, const std::string& username, const std::string& password) : Base(id)
 		{
 			setUsername(username);
 			setPassword(password);
@@ -42,7 +48,7 @@ namespace DatabaseSide {
 
 		void setPassword(const std::string& password)
 		{
-			this->password = password;
+			this->password = std::to_string(generateHash(password));
 		}
 
 		std::string getPassword() const { return this->password; }
@@ -56,9 +62,10 @@ namespace DatabaseSide {
 		}
 
 		friend std::ostream& operator << (std::ostream& out, const Admin& admin);
-		friend std::istream &operator >> (std::istream& in,  Admin& admin);
+		friend std::istream& operator >> (std::istream& in, Admin& admin);
 	};
-	std::ostream &operator << (std::ostream& out, const Admin& admin)
+
+	std::ostream& operator << (std::ostream& out, const Admin& admin)
 	{
 		admin.show();
 		return out;
@@ -77,11 +84,13 @@ namespace DatabaseSide {
 		std::getline(in, password);
 		return in;
 	}
+
 	class Client : public Base {
 		std::string fullname;
 		std::string connected_date;
 
 	public:
+		Client() :fullname(""), connected_date("") {}
 		Client(const size_t& id, const std::string& fullname) : Base(id)
 		{
 			setFullName(fullname);
@@ -112,6 +121,7 @@ namespace DatabaseSide {
 		friend std::ostream& operator << (std::ostream& out, const Client& client);
 		friend std::istream& operator >> (std::istream& in, Client& client);
 	};
+	
 	std::ostream& operator << (std::ostream& out, const Client& client)
 	{
 		client.show();
@@ -127,6 +137,8 @@ namespace DatabaseSide {
 		std::getline(in, fullname);
 		return in;
 	}
+
+
 	class Product : public Base
 	{
 		std::string name;
@@ -265,6 +277,7 @@ namespace DatabaseSide {
 			setDiscount(discount);
 		}
 	};
+
 	std::ostream& operator << (std::ostream& out, const Product& product)
 	{
 		product.detail();
@@ -275,6 +288,7 @@ namespace DatabaseSide {
 		product.input();
 		return in;
 	}
+
 	class ProductItem
 	{
 		Product* product;
@@ -468,7 +482,7 @@ namespace DatabaseSide {
 		}
 
 		int getProductIndexById(const size_t &id) const { return this->products.getItemIndexById(id); }
-		void showAllProducts(bool fullDetail = false)
+		void showAllProducts(bool fullDetail = false) const 
 		{
 			ProductItem ** items = this->products.getItems();
 			if (items != NULL)
@@ -496,6 +510,7 @@ namespace DatabaseSide {
 
 		Product* getProduct(const size_t& id) const { return this->products.getItem(id)->getProduct(); }
 
+		ProductItem* getProductItem(const size_t& id) const { return this->products.getItem(id); }
 		void addAdmin(const Admin* admin)
 		{
 			if (admin != NULL)
