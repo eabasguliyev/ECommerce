@@ -7,21 +7,51 @@ namespace ClientSide {
 		BUY = 1, MOREINFO, LOGOUT
 	};
 
-	bool toContinue(const std::string& message)
+	class ClientDatabaseController : public DatabaseSide::DatabaseController
 	{
-		std::string resp;
-		std::cout << "\n" << message;
+	public:
+		ClientDatabaseController(const DatabaseSide::Database* db) :DatabaseController(db) {}
+		bool checkProductQuantity(const size_t& id, const size_t& quantity)
+		{
+			DatabaseSide::ProductItem* item = _database->getProductItem(id);
 
-		std::cin >> resp;
-
-		std::locale loc;
-		if (std::tolower(resp.front(), loc) == 'y')
+			if (quantity > item->getQuantity())
+			{
+				return false;
+			}
 			return true;
+		}
+		void buyProduct(const size_t& id, const size_t& quantity)
+		{
+			DatabaseSide::ProductItem* item = _database->getProductItem(id);
 
-		return false;
-	}
+			item->setQuantity(item->getQuantity() - quantity);
+		}
+		bool login(const std::string& fullname)
+		{
+			DatabaseSide::Client* client = this->_database->getGuest(fullname);
 
-	void menu(AdminSide::DatabaseController & controller) {
+			if (client != NULL)
+			{
+				client->setConnectedDate();
+				return true;
+			}
+			return false;
+		}
+		bool registerClient(const std::string& fullname)
+		{
+			DatabaseSide::Client guest(0, fullname);
+			this->_database->addGuest(&guest);
+			return true;
+		}
+		void sentNotf(const std::string & fullname, const std::string & text)
+		{
+			DatabaseSide::Notification notf(0, fullname, text);
+			this->_database->addNotf(&notf);
+		}
+	};
+
+	void menu(ClientDatabaseController & controller, const std::string &fullname) {
 		
 		while (1)
 		{
@@ -58,13 +88,28 @@ namespace ClientSide {
 
 
 				if (controller.checkProductQuantity(id, quantity)) {
-					if (toContinue(std::string("Are you sure to buy with " + std::to_string(quantity) + " amounts? y/n")))
+					if (controller.toContinue(std::string("Are you sure to buy with " + std::to_string(quantity) + " amounts? y/n")))
+					{
 						controller.buyProduct(id, quantity);
+						controller.sentNotf(fullname, std::string("This product was purchased -> id [ " +
+							std::to_string(id) + " ]"));
+					}
+					else
+					{
+						controller.sentNotf(fullname, std::string("Cancelled checkout for this product -> id [ " +
+							std::to_string(id) + " ]"));
+					}
 				}
 				else
+				{
 					std::cout << "There are not enough products in stock\n";
+					std::cin.ignore();
+					std::cin.get();
+					controller.sentNotf(fullname, std::string("Tried to buy this product -> id[ " + 
+						std::to_string(id) + " ].\n But there are not enough products in stock."));
+				}
 			}
-				break;
+			break;
 			case ClientSide::MOREINFO:
 			{
 				system("CLS");
@@ -78,17 +123,18 @@ namespace ClientSide {
 				DatabaseSide::Product* product = controller.getProduct(id);
 
 				std::cout << *product;
-
+				controller.sentNotf(fullname, std::string("Interested in this product -> id [ " +
+					std::to_string(id) + " ]"));
 				std::cout << "Press enter to continue!";
 				std::cin.ignore();
 				std::cin.get();
 			}
-				break;
+			break;
 			case ClientSide::LOGOUT:
 			{
 				return;
 			}
-				break;
+			break;
 			default:
 				break;
 			}

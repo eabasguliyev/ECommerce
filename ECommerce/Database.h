@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <locale> //tolower
 #include "Time.h"
 
 namespace DatabaseSide {
@@ -32,7 +33,7 @@ namespace DatabaseSide {
 		std::string password;
 		bool master;
 	public:
-		Admin() :username(""), password("") {}
+		Admin() :username(""), password(""), master(false) {}
 		Admin(const size_t& id, const std::string& username, const std::string& password) : Base(id)
 		{
 			setUsername(username);
@@ -61,6 +62,8 @@ namespace DatabaseSide {
 			std::cout << "Password: " << getPassword() << std::endl;
 		}
 
+		bool isMaster() const { return this->master; }
+		void setMasterStatus(const bool& status) { this->master = status; }
 		friend std::ostream& operator << (std::ostream& out, const Admin& admin);
 		friend std::istream& operator >> (std::istream& in, Admin& admin);
 	};
@@ -328,6 +331,60 @@ namespace DatabaseSide {
 		}
 	};
 
+	class Notification: public Base{
+		bool is_read;
+		std::string guest_name;
+		std::string text;
+		std::string created_date;
+
+	public:
+		Notification() : is_read(false), guest_name(""), text(""), created_date("") {}
+
+		Notification(const size_t& id, const std::string& guest_name, const std::string& text) : Base(id)
+		{
+			setGuestName(guest_name);
+			setText(text);
+			setCreatedTime();
+			setReadStatus(false);
+		}
+
+		void setReadStatus(const bool& status) { this->is_read = status; }
+
+		bool isRead()  { return this->is_read; }
+
+		void setText(const std::string& text)
+		{
+			this->text = text;
+		}
+
+		std::string getText() const { return this->text; }
+
+		void setGuestName(const std::string& guest_name)
+		{
+			this->guest_name = guest_name;
+		}
+
+		std::string getGuestName() const { return this->guest_name; }
+
+		void setCreatedTime()
+		{
+			this->created_date = Time::getDate();
+		}
+
+		std::string getCreatedTime() const { return this->created_date; }
+
+		friend std::ostream& operator<<(std::ostream& out, const Notification& notf);
+	};
+
+	std::ostream& operator<<(std::ostream& out, const Notification& notf)
+	{
+		std::cout << "ID: " << notf.getID() << std::endl;
+		std::cout << "Guest name: " << notf.getGuestName() << std::endl;
+		std::cout << "Created time: " << notf.getCreatedTime() << std::endl;
+		std::cout << "Text: " << notf.getText() << std::endl;
+		return out;
+	}
+
 	template <typename T>
 	class DataSet
 	{
@@ -420,10 +477,12 @@ namespace DatabaseSide {
 		}
 	};
 
+
 	class Database {
 		DataSet<ProductItem> products;
 		DataSet<Admin> admins;
 		DataSet<Client> guests;
+		DataSet<Notification> notifications;
 
 		std::string name;
 		std::string created_date;
@@ -439,6 +498,7 @@ namespace DatabaseSide {
 		static size_t admins_id;
 		static size_t guests_id;
 		static size_t products_id;
+		static size_t notifications_id;
 
 
 		Database() :name(""), created_date(""), last_modified_date("") {}
@@ -531,15 +591,36 @@ namespace DatabaseSide {
 		int getAdminIndexById(const size_t& id) const{ return this->admins.getItemIndexById(id); }
 		Admin* getAdmin(const size_t& id) { return this->admins.getItem(id); }
 
-		void showAllAdmins() const
+		Admin* getAdmin(const std::string& username) const { 
+			Admin** admins = this->admins.getItems();
+
+			for (size_t i = 0, length = this->admins.getItemCount(); i < length; i++)
+			{
+				if (username == admins[i]->getUsername())
+					return admins[i];
+			}
+			return NULL;
+		}
+		void showAllAdmins(bool master = false) const
 		{
 			Admin** admins = this->admins.getItems();
 
 			if (admins != NULL)
 			{
-				for (size_t i = 0; i < this->admins.getItemCount(); i++)
+				if (master)
 				{
-					std::cout << admins[i];
+					for (size_t i = 0; i < this->admins.getItemCount(); i++)
+					{
+						std::cout << *admins[i];
+					}
+				}
+				else
+				{
+					for (size_t i = 0; i < this->admins.getItemCount(); i++)
+					{
+						if (master == admins[i]->isMaster())
+							std::cout << *admins[i];
+					}
 				}
 			}
 		}
@@ -566,18 +647,112 @@ namespace DatabaseSide {
 
 			if (guests != NULL)
 			{
-				for (size_t i = 0; i < this->admins.getItemCount(); i++)
+				for (size_t i = 0; i < this->guests.getItemCount(); i++)
 				{
-					std::cout << guests[i];
+					std::cout << *guests[i];
 				}
 			}
 		}
 		Client* getGuest(const size_t& id) { return this->guests.getItem(id); }
 
+		Client* getGuest(const std::string& fullname) const {
+			Client** guests = this->guests.getItems();
+
+			for (size_t i = 0, length = this->guests.getItemCount(); i < length; i++)
+			{
+				if (fullname == guests[i]->getFullName())
+					return guests[i];
+			}
+			return NULL;
+		}
 		int getGuestIndexById(const size_t& id) const { return this->guests.getItemIndexById(id); }
+
+		void addNotf(const Notification* notf)
+		{
+			if (notf != NULL)
+				this->notifications.add(++notifications_id, notf);
+		}
+
+		void deleteNotfByID(const size_t& id)
+		{
+			if (id > 0)
+				this->notifications.deleteById(id);
+		}
+
+		void showAllNotfs() const
+		{
+			Notification** notfs = this->notifications.getItems();
+
+			if (notfs != NULL)
+			{
+				for (size_t i = 0, length = this->notifications.getItemCount(); i < length; i++)
+				{
+					std::cout << *notfs[i];
+				}
+			}
+		}
+
+		void showUnreadNotfs()
+		{
+			Notification** notfs = this->notifications.getItems();
+
+			if (notfs != NULL)
+			{
+				for (size_t i = 0, length = this->notifications.getItemCount(); i < length; i++)
+				{
+					if (!notfs[i]->isRead())
+					{
+						std::cout << *notfs[i];
+						notfs[i]->setReadStatus(true);
+					}
+
+				}
+			}
+		}
 	};
 
 	size_t Database::products_id = NULL;
 	size_t Database::admins_id = NULL;
 	size_t Database::guests_id = NULL;
+	size_t Database::notifications_id = NULL;
+
+
+	class DatabaseController {
+	protected:
+		DatabaseSide::Database *_database;
+	private:
+		void setDB(const DatabaseSide::Database* db)
+		{
+			this->_database = const_cast<DatabaseSide::Database*>(db);
+		}
+	public:
+		DatabaseController(const DatabaseSide::Database* db)// injection
+		{
+			setDB(db);
+		}
+		DatabaseSide::Product* getProduct(const size_t& id)
+		{
+			return _database->getProduct(id);
+		}
+		bool toContinue(const std::string& message)
+		{
+			std::string resp;
+			std::cout << "\n" << message;
+
+			std::cin >> resp;
+
+			std::locale loc;
+			if (std::tolower(resp.front(), loc) == 'y')
+				return true;
+
+			return false;
+		}
+
+		void showAllProducts() const
+		{
+			_database->showAllProducts();
+		}
+
+		//const DatabaseSide::Database& getDB() const { return this->_database;}
+	};
 }

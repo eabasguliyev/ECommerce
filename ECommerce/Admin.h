@@ -1,13 +1,12 @@
 #pragma once
 #include "Database.h"
-#include <locale> //tolower
 //#include <ios>
+
 namespace AdminSide {
 
 	enum Control {
 		ShowProducts = 1, AddProduct, DeleteProduct, UpdateProduct, Back
 	};
-
 	enum AdminControl
 	{
 		ShowAdmins = 1, AddAdmin, DeleteAdmin, UpdateAdmin	
@@ -16,50 +15,24 @@ namespace AdminSide {
 	{
 		ShowGuests = 1, AddGuest, DeleteGuest, UpdateGuest
 	};
-
+	enum NotificationControl
+	{
+		ShowAllNotf = 1, OnlyUnRead
+	};
 	enum MainMenu
 	{
-		ProductOptions = 1, AdminOptions, GuestOptions, Logout
+		ProductOptions = 1, AdminOptions, GuestOptions, NotificationOptions, Logout
 	};
 
-	class DatabaseController {
-	protected:
-		 DatabaseSide::Database _database;
+	class AdminDatabaseController : public DatabaseSide::DatabaseController {
 	public:
-		DatabaseController(const DatabaseSide::Database& db)// injection
-		{
-			this->_database = db;
-		}
+		AdminDatabaseController(const DatabaseSide::Database* db) :DatabaseController(db) {}
 
-		bool toContinue(const std::string & message)
-		{
-			std::string resp;
-			std::cout << "\n" << message;
-
-			std::cin >> resp;
-
-			std::locale loc;
-			if (std::tolower(resp.front(), loc) == 'y')
-				return true;
-
-			return false;
-		}
-
-		DatabaseSide::Product* getProduct(const size_t & id)
-		{
-			return _database.getProduct(id);
-		}
-
-		void showAllProducts() const
-		{
-			_database.showAllProducts();
-		}
-
-		DatabaseSide::ProductItem *getNewItem()
+		DatabaseSide::ProductItem* getNewItem()
 		{
 			DatabaseSide::Product product;
 			size_t quantity;
-			std::cin >> product; 
+			std::cin >> product;
 
 			std::cout << "Product quantity: ";
 
@@ -68,7 +41,6 @@ namespace AdminSide {
 
 			return item;
 		}
-
 		size_t getProductIndexByID()
 		{
 			int item_index = 0;
@@ -79,14 +51,13 @@ namespace AdminSide {
 
 				std::cin >> product_id;
 
-				item_index = this->_database.getProductIndexById(product_id);
+				item_index = this->_database->getProductIndexById(product_id);
 
 				if (item_index != -1)
 					return item_index;
 				std::cout << "There is no product for this id! Try again!\n\n";
 			}
 		}
-
 		size_t getAdminIndexByID()
 		{
 			int index = 0;
@@ -97,14 +68,13 @@ namespace AdminSide {
 
 				std::cin >> admin_id;
 
-				index = this->_database.getAdminIndexById(admin_id);
+				index = this->_database->getAdminIndexById(admin_id);
 
 				if (index != -1)
 					return index;
 				std::cout << "There is no admin for this id! Try again!\n\n";
 			}
 		}
-
 		size_t getGuestIndexByID()
 		{
 			int index = 0;
@@ -115,14 +85,13 @@ namespace AdminSide {
 
 				std::cin >> guest_id;
 
-				index = this->_database.getGuestIndexById(guest_id);
+				index = this->_database->getGuestIndexById(guest_id);
 
 				if (index != -1)
 					return index;
 				std::cout << "There is no guest for this id! Try again!\n\n";
 			}
 		}
-
 		DatabaseSide::Admin* getNewAdmin()
 		{
 			DatabaseSide::Admin* admin = NULL;
@@ -131,7 +100,6 @@ namespace AdminSide {
 
 			return admin;
 		}
-		
 		DatabaseSide::Client* getNewGuest()
 		{
 			DatabaseSide::Client* guest = NULL;
@@ -139,7 +107,6 @@ namespace AdminSide {
 			std::cin >> *guest;
 			return guest;
 		}
-
 		void productControl()
 		{
 			while (1)
@@ -162,7 +129,7 @@ namespace AdminSide {
 				case ShowProducts:
 				{
 
-					this->_database.showAllProducts(true); std::cin.ignore();
+					this->_database->showAllProducts(true); std::cin.ignore();
 					std::cin.get();
 				}
 				break;
@@ -173,7 +140,7 @@ namespace AdminSide {
 						system("CLS");
 						std::cout << "Add New Product\n\n";
 
-						this->_database.addProduct(getNewItem());
+						this->_database->addProduct(getNewItem());
 
 						std::cout << "Product added!" << std::endl;
 
@@ -181,7 +148,7 @@ namespace AdminSide {
 							break;
 					}
 				}
-					break;
+				break;
 				case AdminSide::DeleteProduct:
 				{
 					while (1)
@@ -189,11 +156,11 @@ namespace AdminSide {
 						system("CLS");
 						size_t product_id = 0;
 
-						this->_database.showAllProducts(false);
+						this->_database->showAllProducts(false);
 
 						std::cout << "Delete product\n\n";
 
-						this->_database.deleteProductByID(getProductIndexByID());
+						this->_database->deleteProductByID(getProductIndexByID());
 
 						std::cout << "Product deleted\n";
 						if (!toContinue(std::string("Do you want to continue? y/n ")))
@@ -207,11 +174,11 @@ namespace AdminSide {
 					{
 						system("CLS");
 
-						this->_database.showAllProducts(false);
+						this->_database->showAllProducts(false);
 
 						std::cout << "Update Product\n\n";
 
-						this->_database.updateProductByID(getProductIndexByID(), getNewItem());
+						this->_database->updateProductByID(getProductIndexByID(), getNewItem());
 
 						std::cout << "Product updates!" << std::endl;
 
@@ -219,7 +186,7 @@ namespace AdminSide {
 							break;
 					}
 				}
-					break;
+				break;
 				case 5:
 				{
 					return;
@@ -230,28 +197,25 @@ namespace AdminSide {
 				}
 			}
 		}
-
-		bool checkProductQuantity(const size_t& id, const size_t& quantity)
+		bool login(const std::string& username, const std::string& password, const bool& master = false)
 		{
-			DatabaseSide::ProductItem* item = _database.getProductItem(id);
-
-			if (quantity > item->getQuantity())
-				return false;
-			return true;
+			DatabaseSide::Admin* admin = this->_database->getAdmin(username);
+			if (admin != NULL)
+			{
+				if (std::to_string(DatabaseSide::generateHash(password)) == admin->getPassword())
+				{
+					if (master == admin->isMaster())
+						return true;
+				}
+			}
+			return false;
 		}
-
-		void buyProduct(const size_t& id, const size_t& quantity)
+		void defaultSetting()
 		{
-			DatabaseSide::ProductItem* item = _database.getProductItem(id);
-
-			item->setQuantity(item->getQuantity() - quantity);
+			DatabaseSide::Admin master(0, "master", "master");
+			master.setMasterStatus(true);
+			this->_database->addAdmin(&master);
 		}
-	};
-
-	class DatabaseMasterController: public DatabaseController
-	{
-	public:
-		DatabaseMasterController(const DatabaseSide::Database& db) :DatabaseController(db) {}
 		void adminControl() {
 			while (1)
 			{
@@ -272,7 +236,7 @@ namespace AdminSide {
 				{
 				case AdminSide::ShowAdmins:
 				{
-					this->_database.showAllAdmins(); std::cin.ignore();
+					this->_database->showAllAdmins(); std::cin.ignore();
 					std::cin.get();
 				}
 				break;
@@ -283,7 +247,7 @@ namespace AdminSide {
 						system("CLS");
 						std::cout << "Add New Admin\n\n";
 
-						this->_database.addAdmin(getNewAdmin());
+						this->_database->addAdmin(getNewAdmin());
 
 						std::cout << "Admin added!" << std::endl;
 
@@ -299,11 +263,11 @@ namespace AdminSide {
 						system("CLS");
 						size_t product_id = 0;
 
-						this->_database.showAllAdmins();
+						this->_database->showAllAdmins();
 
 						std::cout << "Delete admin\n\n";
 
-						this->_database.deleteAdminByID(getAdminIndexByID());
+						this->_database->deleteAdminByID(getAdminIndexByID());
 
 						std::cout << "Admin deleted\n";
 						if (!toContinue(std::string("Do you want to continue? y/n ")))
@@ -317,11 +281,11 @@ namespace AdminSide {
 					{
 						system("CLS");
 
-						this->_database.showAllAdmins();
+						this->_database->showAllAdmins();
 
 						std::cout << "Update Admin\n\n";
 
-						this->_database.updateAdminByID(getAdminIndexByID(), getNewAdmin());
+						this->_database->updateAdminByID(getAdminIndexByID(), getNewAdmin());
 
 						std::cout << "Admin updated!" << std::endl;
 
@@ -340,7 +304,6 @@ namespace AdminSide {
 				}
 			}
 		}
-
 		void guestControl()
 		{
 			while (1)
@@ -362,7 +325,7 @@ namespace AdminSide {
 				{
 				case AdminSide::ShowGuests:
 				{
-					this->_database.showAllGuests(); std::cin.ignore();
+					this->_database->showAllGuests(); std::cin.ignore();
 					std::cin.get();
 				}
 				break;
@@ -373,7 +336,7 @@ namespace AdminSide {
 						system("CLS");
 						std::cout << "Add New Guest\n\n";
 
-						this->_database.addGuest(getNewGuest());
+						this->_database->addGuest(getNewGuest());
 
 						std::cout << "Guest added!" << std::endl;
 
@@ -389,11 +352,11 @@ namespace AdminSide {
 						system("CLS");
 						size_t product_id = 0;
 
-						this->_database.showAllGuests();
+						this->_database->showAllGuests();
 
 						std::cout << "Delete guest\n\n";
 
-						this->_database.deleteGuestByID(getGuestIndexByID());
+						this->_database->deleteGuestByID(getGuestIndexByID());
 
 						std::cout << "Admin deleted\n";
 						if (!toContinue(std::string("Do you want to continue? y/n ")))
@@ -407,11 +370,11 @@ namespace AdminSide {
 					{
 						system("CLS");
 
-						this->_database.showAllGuests();
+						this->_database->showAllGuests();
 
 						std::cout << "Update Guest\n\n";
 
-						this->_database.updateGuestByID(getGuestIndexByID(), getNewGuest());
+						this->_database->updateGuestByID(getGuestIndexByID(), getNewGuest());
 
 						std::cout << "Guest updated!" << std::endl;
 
@@ -429,16 +392,55 @@ namespace AdminSide {
 					break;
 				}
 			}
-				
+
 		}
-		
+		void notificationConrol()
+		{
+			while (1)
+			{
+				system("CLS");
+				std::cout << "[1] Show All Notifications\n";
+				std::cout << "[2] Show only unread notifications\n";
+				std::cout << "[3] Back\n";
+
+				short selected = 0;
+
+				std::cout << "Select: ";
+
+				std::cin >> selected;
+
+				switch (selected)
+				{
+				case AdminSide::ShowAllNotf:
+				{
+					this->_database->showAllNotfs(); std::cin.ignore();
+					std::cin.get();
+				}
+				break;
+				case AdminSide::OnlyUnRead:
+				{
+					this->_database->showUnreadNotfs(); std::cin.ignore();
+					std::cin.get();
+				}
+				break;
+				case 3:
+				{
+					return;
+				}
+				break;
+				default:
+					break;
+				}
+			}
+		}
 	};
 
-	void menu(DatabaseController & controller) {
+	void menu(AdminDatabaseController & controller) {
+		
 		controller.productControl();
 	}
 
-	void masterMenu(DatabaseMasterController& controller)
+	void masterMenu(AdminDatabaseController& controller)
 	{
 		while (1)
 		{
@@ -448,7 +450,8 @@ namespace AdminSide {
 			std::cout << "[1] Product Control\n";
 			std::cout << "[2] Admin Control\n";
 			std::cout << "[3] Guest Control\n";
-			std::cout << "[4] Exit\n";
+			std::cout << "[4] Notifications\n";
+			std::cout << "[5] Back\n";
 
 			std::cout << "Select: ";
 
@@ -465,6 +468,11 @@ namespace AdminSide {
 			case AdminSide::AdminOptions:
 			{
 				controller.adminControl();
+			}
+			break;
+			case AdminSide::NotificationOptions:
+			{
+				controller.notificationConrol();
 			}
 			break;
 			case AdminSide::GuestOptions:
