@@ -1,6 +1,6 @@
 #pragma once
 #include "Admin.h"
-#include <locale>
+
 namespace ClientSide {
 	enum GuestControl
 	{
