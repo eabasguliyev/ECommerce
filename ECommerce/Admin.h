@@ -1,5 +1,6 @@
 #pragma once
 #include "Database.h"
+#include "DatabaseController.h"
 //#include <ios>
 
 namespace AdminSide {
@@ -23,8 +24,7 @@ namespace AdminSide {
 	{
 		ProductOptions = 1, AdminOptions, GuestOptions, NotificationOptions, Logout
 	};
-
-	class AdminDatabaseController : public DatabaseSide::DatabaseController {
+	class AdminDatabaseController : public DatabaseController::DatabaseController {
 	public:
 		AdminDatabaseController(const DatabaseSide::Database* db) :DatabaseController(db) {}
 

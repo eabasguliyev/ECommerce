@@ -477,7 +477,6 @@ namespace DatabaseSide {
 		}
 	};
 
-
 	class Database {
 		DataSet<ProductItem> products;
 		DataSet<Admin> admins;

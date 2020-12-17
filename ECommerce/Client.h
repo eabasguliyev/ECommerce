@@ -1,13 +1,13 @@
 #pragma once
 #include "Admin.h"
-
+#include "DatabaseController.h"
 namespace ClientSide {
 	enum GuestControl
 	{
 		BUY = 1, MOREINFO, LOGOUT
 	};
 
-	class ClientDatabaseController : public DatabaseSide::DatabaseController
+	class ClientDatabaseController : public DatabaseController::DatabaseController
 	{
 	public:
 		ClientDatabaseController(const DatabaseSide::Database* db) :DatabaseController(db) {}

@@ -142,7 +142,9 @@
     <ClInclude Include="Admin.h" />
     <ClInclude Include="Client.h" />
     <ClInclude Include="Database.h" />
+    <ClInclude Include="DatabaseController.h" />
     <ClInclude Include="ECommerce.h" />
+    <ClInclude Include="Exception.h" />
     <ClInclude Include="Time.h" />
   </ItemGroup>
   <ItemGroup>
