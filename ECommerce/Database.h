@@ -2,7 +2,7 @@
 #include <iostream>
 #include <locale> //tolower
 #include "Time.h"
-
+#include "Exception.h"
 namespace DatabaseSide {
 	size_t generateHash(const std::string& data)
 	{
@@ -415,7 +415,7 @@ namespace DatabaseSide {
 				this->items = new_items;
 			}
 		}
-		void deleteById(const size_t index)
+		void deleteByIndex(const size_t index)
 		{
 			auto new_items = new T * [this->count - 1];
 
@@ -455,7 +455,7 @@ namespace DatabaseSide {
 			}
 			return -1;
 		}
-		void updateById(const size_t index, const T* item)
+		void updateByIndex(const size_t index, const T* item)
 		{
 			size_t id = this->items[index]->getID();
 			delete this->items[index];
@@ -528,16 +528,16 @@ namespace DatabaseSide {
 				this->products.add(++products_id, product);
 		}
 
-		void deleteProductByID(const size_t& id)
+		void deleteProductByIndex(const size_t& index)
 		{
-			if (id > 0)
-				this->products.deleteById(id);
+			if (index > 0)
+				this->products.deleteByIndex(index);
 		}
 
-		void updateProductByID(const size_t& index, const ProductItem* item)
+		void updateProductByIndex(const size_t& index, const ProductItem* item)
 		{
 			if (item != NULL)
-				this->products.updateById(index, item);
+				this->products.updateByIndex(index, item);
 		}
 
 		int getProductIndexById(const size_t &id) const { return this->products.getItemIndexById(id); }
@@ -551,6 +551,7 @@ namespace DatabaseSide {
 					for (size_t i = 0, length = this->products.getItemCount(); i < length; i++)
 					{
 						std::cout << *items[i]->getProduct();
+						std::cout << "Product amounts: " << items[i]->getQuantity() << std::endl;
 					}
 					std::cout << "########################################" << std::endl;
 				}
@@ -567,7 +568,13 @@ namespace DatabaseSide {
 				std::cout << "There is no product!" << std::endl;
 		}
 
-		Product* getProduct(const size_t& id) const { return this->products.getItem(id)->getProduct(); }
+		Product* getProduct(const size_t& id) const { 
+			ProductItem* tmp = this->products.getItem(id);
+
+			if (tmp)
+				return tmp->getProduct();
+			throw Exception::DatabaseException(__LINE__, __TIME__, __FILE__, std::string("There is not product assoicated this id [" + std::to_string(id) + "]"));
+		}
 
 		ProductItem* getProductItem(const size_t& id) const { return this->products.getItem(id); }
 		void addAdmin(const Admin* admin)
@@ -576,16 +583,16 @@ namespace DatabaseSide {
 				this->admins.add(++admins_id, admin);
 		}
 
-		void deleteAdminByID(const size_t& id)
+		void deleteAdminByIndex(const size_t& index)
 		{
-			if (id > 0)
-				this->admins.deleteById(id);
+			if (index > 0)
+				this->admins.deleteByIndex(index);
 		}
 
-		void updateAdminByID(const size_t& id, const Admin* admin)
+		void updateAdminByIndex(const size_t& index, const Admin* admin)
 		{
-			if (id > 0 && admin != NULL)
-				this->admins.updateById(id, admin);
+			if (index > 0 && admin != NULL)
+				this->admins.updateByIndex(index, admin);
 		}
 		int getAdminIndexById(const size_t& id) const{ return this->admins.getItemIndexById(id); }
 		Admin* getAdmin(const size_t& id) { return this->admins.getItem(id); }
@@ -629,16 +636,16 @@ namespace DatabaseSide {
 				this->guests.add(++guests_id, guest);
 		}
 
-		void deleteGuestByID(const size_t& id)
+		void deleteGuestByIndex(const size_t& index)
 		{
-			if (id > 0)
-				this->guests.deleteById(id);
+			if (index > 0)
+				this->guests.deleteByIndex(index);
 		}
 
-		void updateGuestByID(const size_t& id, const Client* guest)
+		void updateGuestByIndex(const size_t& index, const Client* guest)
 		{
-			if (id > 0 && guest != NULL)
-				this->guests.updateById(id, guest);
+			if (index > 0 && guest != NULL)
+				this->guests.updateByIndex(index, guest);
 		}
 		void showAllGuests() const
 		{
@@ -664,6 +671,7 @@ namespace DatabaseSide {
 			}
 			return NULL;
 		}
+
 		int getGuestIndexById(const size_t& id) const { return this->guests.getItemIndexById(id); }
 
 		void addNotf(const Notification* notf)
@@ -672,10 +680,10 @@ namespace DatabaseSide {
 				this->notifications.add(++notifications_id, notf);
 		}
 
-		void deleteNotfByID(const size_t& id)
+		void deleteNotfByIndex(const size_t& index)
 		{
-			if (id > 0)
-				this->notifications.deleteById(id);
+			if (index > 0)
+				this->notifications.deleteByIndex(index);
 		}
 
 		void showAllNotfs() const
@@ -716,42 +724,5 @@ namespace DatabaseSide {
 	size_t Database::notifications_id = NULL;
 
 
-	class DatabaseController {
-	protected:
-		DatabaseSide::Database *_database;
-	private:
-		void setDB(const DatabaseSide::Database* db)
-		{
-			this->_database = const_cast<DatabaseSide::Database*>(db);
-		}
-	public:
-		DatabaseController(const DatabaseSide::Database* db)// injection
-		{
-			setDB(db);
-		}
-		DatabaseSide::Product* getProduct(const size_t& id)
-		{
-			return _database->getProduct(id);
-		}
-		bool toContinue(const std::string& message)
-		{
-			std::string resp;
-			std::cout << "\n" << message;
-
-			std::cin >> resp;
-
-			std::locale loc;
-			if (std::tolower(resp.front(), loc) == 'y')
-				return true;
-
-			return false;
-		}
-
-		void showAllProducts() const
-		{
-			_database->showAllProducts();
-		}
-
-		//const DatabaseSide::Database& getDB() const { return this->_database;}
-	};
+	
 }

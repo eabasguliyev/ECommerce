@@ -160,7 +160,7 @@ namespace AdminSide {
 
 						std::cout << "Delete product\n\n";
 
-						this->_database->deleteProductByID(getProductIndexByID());
+						this->_database->deleteProductByIndex(getProductIndexByID());
 
 						std::cout << "Product deleted\n";
 						if (!toContinue(std::string("Do you want to continue? y/n ")))
@@ -178,7 +178,7 @@ namespace AdminSide {
 
 						std::cout << "Update Product\n\n";
 
-						this->_database->updateProductByID(getProductIndexByID(), getNewItem());
+						this->_database->updateProductByIndex(getProductIndexByID(), getNewItem());
 
 						std::cout << "Product updates!" << std::endl;
 
@@ -267,7 +267,7 @@ namespace AdminSide {
 
 						std::cout << "Delete admin\n\n";
 
-						this->_database->deleteAdminByID(getAdminIndexByID());
+						this->_database->deleteAdminByIndex(getAdminIndexByID());
 
 						std::cout << "Admin deleted\n";
 						if (!toContinue(std::string("Do you want to continue? y/n ")))
@@ -285,7 +285,7 @@ namespace AdminSide {
 
 						std::cout << "Update Admin\n\n";
 
-						this->_database->updateAdminByID(getAdminIndexByID(), getNewAdmin());
+						this->_database->updateAdminByIndex(getAdminIndexByID(), getNewAdmin());
 
 						std::cout << "Admin updated!" << std::endl;
 
@@ -356,7 +356,7 @@ namespace AdminSide {
 
 						std::cout << "Delete guest\n\n";
 
-						this->_database->deleteGuestByID(getGuestIndexByID());
+						this->_database->deleteGuestByIndex(getGuestIndexByID());
 
 						std::cout << "Admin deleted\n";
 						if (!toContinue(std::string("Do you want to continue? y/n ")))
@@ -374,7 +374,7 @@ namespace AdminSide {
 
 						std::cout << "Update Guest\n\n";
 
-						this->_database->updateGuestByID(getGuestIndexByID(), getNewGuest());
+						this->_database->updateGuestByIndex(getGuestIndexByID(), getNewGuest());
 
 						std::cout << "Guest updated!" << std::endl;
 

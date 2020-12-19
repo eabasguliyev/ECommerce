@@ -1,6 +1,8 @@
 #pragma once
 #include "Admin.h"
 #include "DatabaseController.h"
+#include "Exception.h"
+
 namespace ClientSide {
 	enum GuestControl
 	{
@@ -15,11 +17,18 @@ namespace ClientSide {
 		{
 			DatabaseSide::ProductItem* item = _database->getProductItem(id);
 
-			if (quantity > item->getQuantity())
+			if (item == NULL)
 			{
-				return false;
+				throw Exception::DatabaseException(__LINE__, __TIME__, __FILE__, std::string("There is not product assoicated this id [" + std::to_string(id) + "]"));
 			}
-			return true;
+			else
+			{
+				if (quantity > item->getQuantity())
+				{
+					return false;
+				}
+				return true;
+			}
 		}
 		void buyProduct(const size_t& id, const size_t& quantity)
 		{
@@ -87,26 +96,35 @@ namespace ClientSide {
 				std::cin >> quantity;
 
 
-				if (controller.checkProductQuantity(id, quantity)) {
-					if (controller.toContinue(std::string("Are you sure to buy with " + std::to_string(quantity) + " amounts? y/n")))
-					{
-						controller.buyProduct(id, quantity);
-						controller.sentNotf(fullname, std::string("This product was purchased -> id [ " +
-							std::to_string(id) + " ]"));
+				try
+				{
+					if (controller.checkProductQuantity(id, quantity)) {
+						if (controller.toContinue(std::string("Are you sure to buy with " + std::to_string(quantity) + " amounts? y/n")))
+						{
+							controller.buyProduct(id, quantity);
+							controller.sentNotf(fullname, std::string("This product was purchased -> id [ " +
+								std::to_string(id) + " ]"));
+						}
+						else
+						{
+							controller.sentNotf(fullname, std::string("Cancelled checkout for this product -> id [ " +
+								std::to_string(id) + " ]"));
+						}
 					}
 					else
 					{
-						controller.sentNotf(fullname, std::string("Cancelled checkout for this product -> id [ " +
-							std::to_string(id) + " ]"));
+						std::cout << "There are not enough products in stock\n";
+						std::cin.ignore();
+						std::cin.get();
+						controller.sentNotf(fullname, std::string("Tried to buy this product -> id[ " +
+							std::to_string(id) + " ].\n But there are not enough products in stock."));
 					}
 				}
-				else
+				catch (const Exception::DatabaseException& ex)
 				{
-					std::cout << "There are not enough products in stock\n";
+					ex.echo();
 					std::cin.ignore();
 					std::cin.get();
-					controller.sentNotf(fullname, std::string("Tried to buy this product -> id[ " + 
-						std::to_string(id) + " ].\n But there are not enough products in stock."));
 				}
 			}
 			break;
@@ -120,14 +138,23 @@ namespace ClientSide {
 
 				std::cin >> id;
 
-				DatabaseSide::Product* product = controller.getProduct(id);
+				try
+				{
+					DatabaseSide::Product* product = controller.getProduct(id);
 
-				std::cout << *product;
-				controller.sentNotf(fullname, std::string("Interested in this product -> id [ " +
-					std::to_string(id) + " ]"));
-				std::cout << "Press enter to continue!";
-				std::cin.ignore();
-				std::cin.get();
+					std::cout << *product;
+					controller.sentNotf(fullname, std::string("Interested in this product -> id [ " +
+						std::to_string(id) + " ]"));
+					std::cout << "Press enter to continue!";
+					std::cin.ignore();
+					std::cin.get();
+				}
+				catch (const Exception::DatabaseException& ex)
+				{
+					ex.echo();
+					std::cin.ignore();
+					std::cin.get();
+				}
 			}
 			break;
 			case ClientSide::LOGOUT:
