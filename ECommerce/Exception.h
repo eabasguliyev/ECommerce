@@ -49,6 +49,7 @@ namespace Exception
 
 		void echo() const
 		{
+			std::cout << "Source: " << getSource() << std::endl;
 			std::cout << "Line: " << getTriggeredLine() << std::endl;
 			std::cout << "Time: " << getTriggeredTime() << std::endl;
 			std::cout << "Error: " << getText() << std::endl;
